@@ -4,7 +4,7 @@ import { useState } from 'react'
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { FileText, BookOpen, GraduationCap, Clock, BookmarkPlus, BookmarkCheck, Loader2 } from 'lucide-react'
+import { FileText, BookOpen, GraduationCap, Clock, BookmarkPlus, BookmarkCheck, Loader2, Trash2 } from 'lucide-react'
 import Link from 'next/link'
 import { useSupabase } from '@/components/supabase/provider'
 import { useToast } from '@/components/ui/use-toast'
@@ -45,13 +45,34 @@ const typeConfig = {
     },
 }
 
-export function DocumentCard({ doc, isSavedInitially = false, onToggleSave }: { doc: Document, isSavedInitially?: boolean, onToggleSave?: () => void }) {
+export function DocumentCard({ doc, isSavedInitially = false, onToggleSave, isAdmin }: { doc: Document, isSavedInitially?: boolean, onToggleSave?: () => void, isAdmin?: boolean }) {
     const config = typeConfig[doc.type]
     const Icon = config.icon
     const { supabase, user } = useSupabase()
     const { toast } = useToast()
     const [isSaved, setIsSaved] = useState(isSavedInitially)
     const [loading, setLoading] = useState(false)
+    const [deleting, setDeleting] = useState(false)
+    const [confirmDelete, setConfirmDelete] = useState(false)
+
+    const handleDelete = async () => {
+        if (!confirmDelete) {
+            setConfirmDelete(true)
+            setTimeout(() => setConfirmDelete(false), 3000)
+            return
+        }
+
+        setDeleting(true)
+        const { error } = await supabase.from('documents').delete().eq('id', doc.id)
+        if (!error) {
+            toast({ title: 'Eliminado', description: 'El documento fue eliminado definitivamente.' })
+            if (onToggleSave) onToggleSave()
+        } else {
+            toast({ title: 'Error', description: 'No se pudo eliminar el documento', variant: 'destructive' })
+            setDeleting(false)
+            setConfirmDelete(false)
+        }
+    }
 
     const handleSaveToggle = async () => {
         if (!user) return
@@ -96,6 +117,18 @@ export function DocumentCard({ doc, isSavedInitially = false, onToggleSave }: { 
                         {config.label}
                     </Badge>
                     <div className="flex items-center gap-2">
+                        {isAdmin && (
+                            <Button
+                                variant="ghost"
+                                size="icon"
+                                className={`h-6 w-6 transition-colors ${confirmDelete ? 'text-red-500 bg-red-500/10 hover:bg-red-500/20' : 'text-muted-foreground hover:text-red-400'}`}
+                                onClick={handleDelete}
+                                disabled={deleting}
+                                title={confirmDelete ? "Click de nuevo para borrar" : "Eliminar material"}
+                            >
+                                {deleting ? <Loader2 className="h-4 w-4 animate-spin text-red-500" /> : <Trash2 className="h-4 w-4" />}
+                            </Button>
+                        )}
                         <div className="flex items-center text-[10px] text-muted-foreground">
                             <Clock className="mr-1 h-3 w-3" />
                             {new Date(doc.created_at).toLocaleDateString('es-CO', { month: 'short', day: 'numeric' })}

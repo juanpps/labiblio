@@ -110,19 +110,19 @@ export default function ViewerPage() {
                     )}
 
                     {/* Annotation Layer (Absolute on top) */}
-                    {isDrawing && (
-                        <AnnotationLayer
-                            documentId={doc.id}
-                            initialData={drawingData}
-                            brushColor={brushColor}
-                            brushRadius={brushRadius}
-                            mode={mode}
-                        />
-                    )}
+                    <AnnotationLayer
+                        documentId={doc.id}
+                        initialData={drawingData}
+                        brushColor={brushColor}
+                        brushRadius={brushRadius}
+                        mode={mode}
+                        isDrawing={isDrawing}
+                        onSaveComplete={(savedData) => setDrawingData(savedData)}
+                    />
                 </div>
 
                 {/* Side Panel for Mnemonics / Comments */}
-                <SidePanel doc={doc} />
+                <SidePanel doc={doc} isDrawing={isDrawing} />
             </div>
         </div>
     )

@@ -37,6 +37,7 @@ export function AdminPanel() {
     const [loading, setLoading] = useState(true)
     const [newEmail, setNewEmail] = useState('')
     const [materialSearch, setMaterialSearch] = useState('')
+    const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null)
 
     const fetchData = useCallback(async () => {
         setLoading(true)
@@ -74,7 +75,11 @@ export function AdminPanel() {
     }, [fetchData])
 
     const handleDeleteDocument = async (doc: Document) => {
-        if (!confirm(`¿Estás seguro de eliminar "${doc.title}"? Esta acción no se puede deshacer.`)) return
+        if (confirmDeleteId !== doc.id) {
+            setConfirmDeleteId(doc.id)
+            setTimeout(() => setConfirmDeleteId(null), 3000)
+            return
+        }
 
         // 1. Delete from storage
         const { error: storageError } = await supabase.storage
@@ -306,11 +311,11 @@ export function AdminPanel() {
                                                     <Button
                                                         variant="ghost"
                                                         size="icon"
-                                                        className="text-zinc-600 hover:text-red-400 hover:bg-red-400/10 h-9 w-9 rounded-xl transition-all"
+                                                        className={`h-9 w-9 rounded-xl transition-all ${confirmDeleteId === m.id ? 'text-red-500 bg-red-500/10' : 'text-zinc-600 hover:text-red-400 hover:bg-red-400/10'}`}
                                                         onClick={() => handleDeleteDocument(m)}
-                                                        title="Eliminar permanentemente"
+                                                        title={confirmDeleteId === m.id ? "Click de nuevo para borrar" : "Eliminar permanentemente"}
                                                     >
-                                                        <FileX className="h-4 w-4" />
+                                                        {confirmDeleteId === m.id ? <Trash2 className="h-4 w-4" /> : <FileX className="h-4 w-4" />}
                                                     </Button>
                                                 </td>
                                             </tr>

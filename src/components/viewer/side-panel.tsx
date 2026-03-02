@@ -20,7 +20,7 @@ interface Comment {
     user_id: string
 }
 
-export function SidePanel({ doc: initialDoc }: { doc: Document }) {
+export function SidePanel({ doc: initialDoc, isDrawing }: { doc: Document, isDrawing?: boolean }) {
     const { supabase, user } = useSupabase()
     const { toast } = useToast()
     const [doc, setDoc] = useState(initialDoc)
@@ -129,15 +129,17 @@ export function SidePanel({ doc: initialDoc }: { doc: Document }) {
 
     return (
         <Sheet>
-            <SheetTrigger asChild>
-                <Button
-                    variant="default"
-                    size="icon"
-                    className="fixed right-4 bottom-28 md:right-10 md:bottom-32 h-14 w-14 rounded-full bg-primary text-white shadow-2xl hover:scale-110 active:scale-95 transition-all z-[60]"
-                >
-                    <MessageSquare className="h-7 w-7" />
-                </Button>
-            </SheetTrigger>
+            {!isDrawing && (
+                <SheetTrigger asChild>
+                    <Button
+                        variant="default"
+                        size="icon"
+                        className="fixed right-4 bottom-28 md:right-10 md:bottom-32 h-14 w-14 rounded-full bg-primary text-white shadow-2xl hover:scale-110 active:scale-95 transition-all z-[60]"
+                    >
+                        <MessageSquare className="h-7 w-7" />
+                    </Button>
+                </SheetTrigger>
+            )}
             <SheetContent side="right" className="w-full sm:w-[500px] bg-zinc-950 border-white/10 p-0 overflow-hidden flex flex-col">
                 <SheetHeader className="p-6 border-b border-white/5">
                     <SheetTitle className="text-white flex items-center gap-2 font-bold">

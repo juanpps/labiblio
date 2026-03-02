@@ -6,7 +6,7 @@ import { DashboardHeader } from '@/components/dashboard/header'
 import { DocumentCard, type Document } from '@/components/documents/document-card'
 import { UploadMaterial } from '@/components/documents/upload-material'
 import { Skeleton } from '@/components/ui/skeleton'
-import { BookOpen, Sparkles, Shield } from 'lucide-react'
+import { BookOpen, Sparkles, Shield, BookmarkCheck } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import Link from 'next/link'
 
@@ -54,6 +54,33 @@ export default function DashboardPage() {
             <DashboardHeader />
             <main className="container py-8 space-y-10">
 
+                {/* Sección 0: Mi Biblioteca Personal (Solo si hay guardados) */}
+                {!loading && documents.filter(d => savedDocIds.includes(d.id)).length > 0 && (
+                    <section className="space-y-6 pb-6 border-b border-white/5">
+                        <div className="flex items-center gap-3">
+                            <div className="p-3 rounded-2xl bg-amber-500/10 border border-amber-500/20">
+                                <BookmarkCheck className="h-6 w-6 text-amber-500" />
+                            </div>
+                            <div>
+                                <h2 className="text-2xl font-bold tracking-tight text-white">Mi Biblioteca Personal</h2>
+                                <p className="text-sm text-zinc-500">Acceso rápido a tus materiales guardados y versiones privadas.</p>
+                            </div>
+                        </div>
+
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                            {documents.filter(d => savedDocIds.includes(d.id)).map((doc) => (
+                                <DocumentCard
+                                    key={doc.id}
+                                    doc={doc}
+                                    isSavedInitially={true}
+                                    onToggleSave={fetchDocuments}
+                                    isAdmin={isAdmin}
+                                />
+                            ))}
+                        </div>
+                    </section>
+                )}
+
                 {/* Sección 1: Lecturas Dinámicas (Inglés y Lectura Crítica) */}
                 <section className="space-y-6">
                     <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-white/5 pb-6">
@@ -95,6 +122,7 @@ export default function DashboardPage() {
                                     doc={doc}
                                     isSavedInitially={savedDocIds.includes(doc.id)}
                                     onToggleSave={fetchDocuments}
+                                    isAdmin={isAdmin}
                                 />
                             ))
                         )}
@@ -131,6 +159,7 @@ export default function DashboardPage() {
                                     doc={doc}
                                     isSavedInitially={savedDocIds.includes(doc.id)}
                                     onToggleSave={fetchDocuments}
+                                    isAdmin={isAdmin}
                                 />
                             ))
                         )}

@@ -57,12 +57,12 @@ export function ViewerHeader({
                                 <ChevronLeft className="h-5 w-5" />
                             </Link>
                         </Button>
-                        <div className="min-w-0 flex flex-col">
-                            <h1 className="text-xs sm:text-sm font-bold truncate leading-tight pr-2">{doc.title}</h1>
-                            <div className="flex items-center gap-2">
-                                <Badge variant="outline" className={`text-[8px] sm:text-[10px] h-3.5 sm:h-4 py-0 px-1 border-none bg-white/5 ${mode === 'global' ? 'text-primary' : 'text-blue-500'}`}>
-                                    {mode === 'global' ? <Users className="h-2 w-2 mr-1" /> : <UserCircle className="h-2 w-2 mr-1" />}
-                                    {mode === 'global' ? 'Colectivo' : 'Personal'}
+                        <div className="min-w-0 flex flex-col justify-center">
+                            <h1 className="text-[10px] sm:text-xs font-bold truncate leading-tight pr-2 text-zinc-300">{doc.title}</h1>
+                            <div className="flex items-center gap-1 mt-0.5">
+                                <Badge variant="outline" className={`text-[7px] sm:text-[9px] h-3 sm:h-3.5 py-0 px-1 border-none bg-white/5 ${mode === 'global' ? 'text-primary' : 'text-blue-500'}`}>
+                                    {mode === 'global' ? <Users className="h-2 w-2 mr-0.5" /> : <UserCircle className="h-2 w-2 mr-0.5" />}
+                                    {mode === 'global' ? 'Colectivo' : 'Mío'}
                                 </Badge>
                             </div>
                         </div>
@@ -113,8 +113,8 @@ export function ViewerHeader({
                             <Pencil className="h-4 w-4" />
                         </Button>
 
-                        <Button variant="ghost" size="icon" className="text-zinc-400 hover:text-white h-9 w-9">
-                            <Download className="h-4 w-4" />
+                        <Button variant="ghost" size="icon" className="text-zinc-500 hover:text-white h-8 w-8">
+                            <Download className="h-3.5 w-3.5" />
                         </Button>
 
                         <Button size="sm" className="hidden sm:flex gap-2 h-9 px-4 font-bold">
