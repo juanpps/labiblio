@@ -125,7 +125,8 @@ export const AnnotationLayer = forwardRef<AnnotationLayerRef, AnnotationLayerPro
                     }
                 }}
                 onTouchEnd={() => {
-                    setIsMultiTouch(false)
+                    // Small delay to prevent accidental drawing when lifting fingers after scroll/pinch
+                    setTimeout(() => setIsMultiTouch(false), 200)
                 }}
                 onWheel={(e) => {
                     if (isDrawing) {

@@ -13,8 +13,15 @@ const withPWA = withPWAInit({
 });
 
 const nextConfig = {
-    webpack: (config) => {
+    webpack: (config, { isServer }) => {
         config.resolve.alias.canvas = false;
+        if (!isServer) {
+            config.resolve.fallback = {
+                ...config.resolve.fallback,
+                process: "process/browser",
+                util: "util",
+            };
+        }
         return config;
     },
     eslint: {
