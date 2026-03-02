@@ -18,7 +18,7 @@ export function UploadMaterial({ onUploadComplete }: { onUploadComplete?: () => 
     const router = useRouter()
     const [open, setOpen] = useState(false)
     const [loading, setLoading] = useState(false)
-    const [file, setFile] = useState<File | null>(null)
+    const [files, setFiles] = useState<File[]>([])
     const [formData, setFormData] = useState({
         title: '',
         author: '',
@@ -27,80 +27,103 @@ export function UploadMaterial({ onUploadComplete }: { onUploadComplete?: () => 
     })
 
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const selectedFile = e.target.files?.[0]
-        if (selectedFile) {
-            if (selectedFile.size > 100 * 1024 * 1024) { // Límite de 100MB de seguridad en la UI
-                toast({
-                    title: "Archivo muy pesado",
-                    description: "El archivo supera los 100MB. Intenta con uno más ligero.",
-                    variant: "destructive"
-                })
-                e.target.value = ''
-                return
-            }
-            setFile(selectedFile)
+        const selectedFiles = Array.from(e.target.files || [])
+        if (selectedFiles.length > 0) {
+            const validFiles = selectedFiles.filter(file => {
+                if (file.size > 100 * 1024 * 1024) {
+                    toast({
+                        title: "Archivo muy pesado",
+                        description: `El archivo ${file.name} supera los 100MB.`,
+                        variant: "destructive"
+                    })
+                    return false
+                }
+                return true
+            })
+            setFiles(validFiles)
         }
     }
 
     const handleUpload = async (e: React.FormEvent) => {
         e.preventDefault()
-        if (!file || !user) return
+        if (files.length === 0 || !user) return
 
         setLoading(true)
+        let successCount = 0
+        let errorCount = 0
+
         try {
-            // 1. Sanitizar el nombre del archivo para evitar el error "Invalid key"
-            const cleanName = file.name
-                .toLowerCase()
-                .replace(/\s+/g, '-') // Espacios por guiones
-                .replace(/[^a-z0-9.-]/g, '') // Quitar caracteres raros
+            for (let i = 0; i < files.length; i++) {
+                const file = files[i]
+                const isMultiple = files.length > 1
+                const displayTitle = isMultiple ? `${formData.title} - Pág ${i + 1}` : formData.title
 
-            const fileExt = cleanName.split('.').pop()
-            const fileName = `${Math.random().toString(36).substring(2)}-${Date.now()}.${fileExt}`
-            const filePath = `${formData.type}/${fileName}`
+                // 1. Sanitizar el nombre del archivo
+                const cleanName = file.name
+                    .toLowerCase()
+                    .replace(/\s+/g, '-')
+                    .replace(/[^a-z0-9.-]/g, '')
 
-            // 2. Subida al Storage
-            const { error: uploadError } = await supabase.storage
-                .from('materials')
-                .upload(filePath, file, {
-                    cacheControl: '3600',
-                    upsert: false
+                const fileExt = cleanName.split('.').pop()
+                const fileName = `${Math.random().toString(36).substring(2)}-${Date.now()}.${fileExt}`
+                const filePath = `${formData.type}/${fileName}`
+
+                // 2. Subida al Storage
+                const { error: uploadError } = await supabase.storage
+                    .from('materials')
+                    .upload(filePath, file, {
+                        cacheControl: '3600',
+                        upsert: false
+                    })
+
+                if (uploadError) {
+                    console.error(`Error uploading ${file.name}:`, uploadError)
+                    errorCount++
+                    continue
+                }
+
+                // 3. Crear el registro en la base de datos
+                const { error: dbError } = await supabase
+                    .from('documents')
+                    .insert({
+                        title: displayTitle,
+                        type: formData.type,
+                        file_path: filePath,
+                        mnemonics: '',
+                        metadata: {
+                            author: formData.author,
+                            edition: formData.edition,
+                            uploaded_by: user.email,
+                            last_edited_by: user.email,
+                            file_size: file.size,
+                            created_at: new Date().toISOString(),
+                            answers: []
+                        }
+                    })
+
+                if (dbError) {
+                    console.error(`Error saving ${file.name} to DB:`, dbError)
+                    errorCount++
+                } else {
+                    successCount++
+                }
+            }
+
+            if (successCount > 0) {
+                if (onUploadComplete) onUploadComplete()
+                toast({
+                    title: "¡Éxito!",
+                    description: files.length > 1
+                        ? `Se subieron ${successCount} archivos correctamente${errorCount > 0 ? `. (${errorCount} fallaron)` : ''}`
+                        : "Material subido correctamente.",
                 })
-
-            if (uploadError) throw new Error(uploadError.message === 'Payload too large' ? 'El archivo es demasiado grande para Supabase (Máx 50MB). Considere comprimirlo antes.' : uploadError.message)
-
-            // 3. Crear el registro en la base de datos
-            const { error: dbError } = await supabase
-                .from('documents')
-                .insert({
-                    title: formData.title,
-                    type: formData.type,
-                    file_path: filePath,
-                    mnemonics: '',
-                    metadata: {
-                        author: formData.author,
-                        edition: formData.edition,
-                        uploaded_by: user.email,
-                        last_edited_by: user.email,
-                        file_size: file.size,
-                        created_at: new Date().toISOString(),
-                        answers: []
-                    }
-                })
-
-            if (dbError) throw dbError
-
-            if (dbError) throw dbError
-
-            if (onUploadComplete) onUploadComplete()
-
-            toast({
-                title: "¡Éxito!",
-                description: "Material subido correctamente.",
-            })
-            setOpen(false)
-            router.refresh()
+                setOpen(false)
+                router.refresh()
+            } else {
+                throw new Error("No se pudo subir ningún archivo.")
+            }
         } catch (error: any) {
-            console.error('Error al subir:', error)
+            console.error('Error general al subir:', error)
             toast({
                 title: "Error al subir",
                 description: error.message || "No se pudo completar la subida.",
@@ -108,6 +131,7 @@ export function UploadMaterial({ onUploadComplete }: { onUploadComplete?: () => 
             })
         } finally {
             setLoading(false)
+            setFiles([])
         }
     }
 
@@ -192,37 +216,54 @@ export function UploadMaterial({ onUploadComplete }: { onUploadComplete?: () => 
 
                     <div className="space-y-2">
                         <Label htmlFor="pdf" className="text-zinc-400">Archivo PDF *</Label>
-                        <div className={`relative border-2 border-dashed rounded-xl p-4 transition-colors ${file ? 'border-primary/50 bg-primary/5' : 'border-white/5 hover:border-white/20 bg-zinc-900'}`}>
+                        <div className={`relative border-2 border-dashed rounded-xl p-4 transition-colors ${files.length > 0 ? 'border-primary/50 bg-primary/5' : 'border-white/5 hover:border-white/20 bg-zinc-900'}`}>
                             <input
                                 id="pdf"
                                 type="file"
                                 accept="application/pdf,image/*"
+                                multiple
                                 required
                                 onChange={handleFileChange}
                                 className="absolute inset-0 opacity-0 cursor-pointer"
                             />
                             <div className="flex flex-col items-center gap-2 text-center">
-                                {file ? (
+                                {files.length > 0 ? (
                                     <>
-                                        <FileText className="h-8 w-8 text-primary" />
+                                        <div className="flex -space-x-2 overflow-hidden">
+                                            {files.slice(0, 3).map((f, i) => (
+                                                <div key={i} className="inline-block h-10 w-10 rounded-full ring-2 ring-zinc-950 bg-primary/20 flex items-center justify-center">
+                                                    <FileText className="h-5 w-5 text-primary" />
+                                                </div>
+                                            ))}
+                                            {files.length > 3 && (
+                                                <div className="inline-block h-10 w-10 rounded-full ring-2 ring-zinc-950 bg-zinc-800 flex items-center justify-center text-[10px] text-zinc-400">
+                                                    +{files.length - 3}
+                                                </div>
+                                            )}
+                                        </div>
                                         <div className="flex flex-col">
-                                            <span className="text-sm font-medium text-white truncate max-w-[250px]">{file.name}</span>
-                                            <span className="text-[10px] text-zinc-500">{(file.size / (1024 * 1024)).toFixed(2)} MB</span>
+                                            <span className="text-sm font-medium text-white truncate max-w-[250px]">
+                                                {files.length === 1 ? files[0].name : `${files.length} archivos seleccionados`}
+                                            </span>
+                                            <span className="text-[10px] text-zinc-500">
+                                                {(files.reduce((acc, f) => acc + f.size, 0) / (1024 * 1024)).toFixed(2)} MB total
+                                            </span>
                                         </div>
                                     </>
                                 ) : (
                                     <>
                                         <FileUp className="h-8 w-8 text-zinc-600" />
-                                        <span className="text-sm text-zinc-500">Haz clic o arrastra el PDF aquí</span>
+                                        <span className="text-sm text-zinc-500">Haz clic o arrastra archivos aquí</span>
+                                        <span className="text-[10px] text-zinc-600 italic">Puedes seleccionar varias imágenes</span>
                                     </>
                                 )}
                             </div>
                         </div>
-                        {file && file.size > 50 * 1024 * 1024 && (
+                        {files.some(f => f.size > 50 * 1024 * 1024) && (
                             <div className="flex items-center gap-2 p-3 bg-yellow-500/10 border border-yellow-500/20 rounded-lg animate-pulse">
                                 <AlertTriangle className="h-4 w-4 text-yellow-500 shrink-0" />
                                 <p className="text-[10px] text-yellow-200 leading-tight">
-                                    Este archivo pesa más de 50MB. Si la subida falla, intenta comprimirlo en SmallPDF.com antes de subirlo.
+                                    Algunos archivos pesan más de 50MB. Si la subida falla, intenta comprimirlos antes de subirlos.
                                 </p>
                             </div>
                         )}
@@ -231,7 +272,7 @@ export function UploadMaterial({ onUploadComplete }: { onUploadComplete?: () => 
                     <Button
                         type="submit"
                         className="w-full h-12 text-md font-bold bg-primary hover:bg-primary/90"
-                        disabled={loading || !file}
+                        disabled={loading || files.length === 0}
                     >
                         {loading ? (
                             <>
