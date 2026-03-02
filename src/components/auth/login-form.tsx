@@ -22,12 +22,11 @@ export default function LoginForm() {
 
     const handleEmailVerification = async (e: React.FormEvent) => {
         e.preventDefault()
-        if (!email) return
-
+        const cleanEmail = email.toLowerCase().trim()
         setLoading(true)
 
         // Call RPC to check if user is allowed
-        const { data, error } = await supabase.rpc('check_user_status', { user_email: email })
+        const { data, error } = await supabase.rpc('check_user_status', { user_email: cleanEmail })
 
         if (error) {
             toast({
@@ -46,7 +45,7 @@ export default function LoginForm() {
             setStep('PASSWORD')
         } else {
             // Log unauthorized attempt
-            await supabase.from('unauthorized_attempts').insert({ email })
+            await supabase.from('unauthorized_attempts').insert({ email: cleanEmail })
 
             toast({
                 title: 'Acceso Denegado',
@@ -60,14 +59,13 @@ export default function LoginForm() {
 
     const handleAuth = async (e: React.FormEvent) => {
         e.preventDefault()
-        if (!password) return
-
+        const cleanEmail = email.toLowerCase().trim()
         setLoading(true)
 
         if (hasAccount) {
             // Log in existing user
             const { error } = await supabase.auth.signInWithPassword({
-                email,
+                email: cleanEmail,
                 password,
             })
 
@@ -87,7 +85,7 @@ export default function LoginForm() {
         } else {
             // Register new authorized user
             const { error: signUpError } = await supabase.auth.signUp({
-                email,
+                email: cleanEmail,
                 password,
                 options: {
                     emailRedirectTo: `${window.location.origin}/auth/callback`,
@@ -101,20 +99,15 @@ export default function LoginForm() {
                     variant: 'destructive',
                 })
             } else {
-                // Assuming success signs them in or sends an email.
-                // We will attempt to update has_account on the server-side or via an RPC function later,
-                // or just rely on the user being able to log in next time.
-                // For now, let's call our future RPC function if they are authed.
-                const { error: sessionError } = await supabase.rpc('set_user_has_account', { user_email: email })
-
                 toast({
                     title: 'Cuenta configurada',
-                    description: 'Tu contraseña ha sido guardada. Ahora puedes entrar a la plataforma.',
+                    description: 'Tu contraseña ha sido guardada. Accediendo...',
                 })
-                // To force redirection if auto-sign-in works:
-                if (!sessionError) {
+
+                // Allow a small delay for the trigger to run
+                setTimeout(() => {
                     window.location.href = '/dashboard'
-                }
+                }, 1000)
             }
         }
         setLoading(false)
