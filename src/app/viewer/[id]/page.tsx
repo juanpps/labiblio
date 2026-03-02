@@ -31,35 +31,48 @@ export default function ViewerPage() {
         }
 
         async function fetchData() {
-            // Get document
-            const { data: docData, error: docError } = await supabase
-                .from('documents')
-                .select('*')
-                .eq('id', id)
-                .single()
+            setLoading(true)
+            setDrawingData(null) // Reset before new fetch
 
-            if (docError || !docData) {
+            try {
+                // Get document
+                const { data: docData, error: docError } = await supabase
+                    .from('documents')
+                    .select('*')
+                    .eq('id', id)
+                    .single()
+
+                if (docError || !docData) {
+                    console.error("Doc error:", docError)
+                    setLoading(false)
+                    return
+                }
+
+                setDoc(docData)
+
+                // Get annotations based on mode
+                const tableName = mode === 'global' ? 'global_annotations' : 'user_annotations'
+                let query = supabase.from(tableName).select('drawing_data').eq('document_id', id)
+
+                if (mode === 'personal' && user) {
+                    query = query.eq('user_id', user.id)
+                }
+
+                // maybeSingle prevents errors if no annotation exists yet
+                const { data: annData, error: annError } = await query.maybeSingle()
+
+                if (annError) {
+                    console.error("Annotation fetch error:", annError)
+                }
+
+                if (annData) {
+                    setDrawingData(annData.drawing_data)
+                }
+            } catch (err) {
+                console.error("Unexpected fetch error:", err)
+            } finally {
                 setLoading(false)
-                return
             }
-
-            setDoc(docData)
-
-            // Get annotations based on mode
-            const tableName = mode === 'global' ? 'global_annotations' : 'user_annotations'
-            let query = supabase.from(tableName).select('drawing_data').eq('document_id', id)
-
-            if (mode === 'personal' && user) {
-                query = query.eq('user_id', user.id)
-            }
-
-            const { data: annData } = await query.single()
-
-            if (annData) {
-                setDrawingData(annData.drawing_data)
-            }
-
-            setLoading(false)
         }
 
         fetchData()
@@ -97,28 +110,30 @@ export default function ViewerPage() {
             />
 
             <div className="flex-1 relative overflow-hidden flex justify-center items-start">
-                <div className="relative w-full max-w-5xl h-full shadow-2xl border-x border-white/5 bg-white overflow-y-auto custom-scrollbar flex flex-col items-center">
-                    {/* Contenido: PDF o Imagen */}
-                    {doc.file_path.toLowerCase().endsWith('.pdf') ? (
-                        <PDFViewer file={supabase.storage.from('materials').getPublicUrl(doc.file_path).data.publicUrl} />
-                    ) : (
-                        <img
-                            src={supabase.storage.from('materials').getPublicUrl(doc.file_path).data.publicUrl}
-                            alt={doc.title}
-                            className="w-full h-auto object-contain"
-                        />
-                    )}
+                <div className="relative w-full max-w-5xl h-full shadow-2xl border-x border-white/5 bg-white overflow-y-auto custom-scrollbar">
+                    <div className="relative w-full min-h-full flex flex-col items-center">
+                        {/* Contenido: PDF o Imagen */}
+                        {doc.file_path.toLowerCase().endsWith('.pdf') ? (
+                            <PDFViewer file={supabase.storage.from('materials').getPublicUrl(doc.file_path).data.publicUrl} />
+                        ) : (
+                            <img
+                                src={supabase.storage.from('materials').getPublicUrl(doc.file_path).data.publicUrl}
+                                alt={doc.title}
+                                className="w-full h-auto object-contain"
+                            />
+                        )}
 
-                    {/* Annotation Layer (Absolute on top) */}
-                    <AnnotationLayer
-                        documentId={doc.id}
-                        initialData={drawingData}
-                        brushColor={brushColor}
-                        brushRadius={brushRadius}
-                        mode={mode}
-                        isDrawing={isDrawing}
-                        onSaveComplete={(savedData) => setDrawingData(savedData)}
-                    />
+                        {/* Annotation Layer (Now inside the scroll flow) */}
+                        <AnnotationLayer
+                            documentId={doc.id}
+                            initialData={drawingData}
+                            brushColor={brushColor}
+                            brushRadius={brushRadius}
+                            mode={mode}
+                            isDrawing={isDrawing}
+                            onSaveComplete={(savedData) => setDrawingData(savedData)}
+                        />
+                    </div>
                 </div>
 
                 {/* Side Panel for Mnemonics / Comments */}

@@ -31,27 +31,80 @@ export function AnnotationLayer({
     const { toast } = useToast()
     const [saving, setSaving] = useState(false)
     const [canvasWidth, setCanvasWidth] = useState(1200)
+    const [canvasHeight, setCanvasHeight] = useState(1200)
+
+    const containerRef = useRef<HTMLDivElement>(null)
 
     useEffect(() => {
-        const updateWidth = () => {
-            const width = Math.min(window.innerWidth, 1024) // 1024 es el max-w-5xl
-            setCanvasWidth(width)
-        }
+        let timeoutId: NodeJS.Timeout;
 
-        updateWidth()
-        window.addEventListener('resize', updateWidth)
-        return () => window.removeEventListener('resize', updateWidth)
-    }, [])
+        const updateDimensions = () => {
+            if (!containerRef.current?.parentElement) return
 
-    useEffect(() => {
-        if (initialData && canvasRef.current) {
-            try {
-                canvasRef.current.loadSaveData(initialData, true)
-            } catch (e) {
-                console.error('Failed to load drawing data', e)
+            const parent = containerRef.current.parentElement
+            const width = Math.min(window.innerWidth, 1024)
+
+            // Progresive height detection
+            const img = parent.querySelector('img')
+            const pdf = parent.querySelector('.rpv-core__viewer')
+
+            let newHeight = 1200;
+            if (img && img.complete) {
+                newHeight = img.scrollHeight || img.clientHeight
+            } else if (pdf) {
+                const pdfContent = pdf.querySelector('.rpv-core__inner-pages')
+                newHeight = pdfContent?.scrollHeight || pdf.scrollHeight || 1200
+            } else {
+                newHeight = parent.scrollHeight || 1200
             }
+
+            // Solamente actualizamos si el cambio es significativo (> 5px) para evitar jitter
+            setCanvasWidth(prev => Math.abs(prev - width) > 5 ? width : prev)
+            setCanvasHeight(prev => Math.abs(prev - newHeight) > 5 ? newHeight : prev)
         }
-    }, [initialData, canvasWidth]) // Re-load when width changes
+
+        const debouncedUpdate = () => {
+            clearTimeout(timeoutId)
+            timeoutId = setTimeout(updateDimensions, 150)
+        }
+
+        const resizeObserver = new ResizeObserver(debouncedUpdate)
+        if (containerRef.current?.parentElement) {
+            resizeObserver.observe(containerRef.current.parentElement)
+        }
+
+        window.addEventListener('resize', debouncedUpdate)
+        // Check once more after a delay for PDF rendering
+        const initialTimer = setTimeout(updateDimensions, 1500)
+
+        return () => {
+            clearTimeout(timeoutId)
+            clearTimeout(initialTimer)
+            resizeObserver.disconnect()
+            window.removeEventListener('resize', debouncedUpdate)
+        }
+    }, [isDrawing, initialData])
+
+    const isLoadedRef = useRef<string | null>(null)
+
+    useEffect(() => {
+        // Only load if we have data, a ref, and dimensions are "ready" (default is 1200, so we wait for detection)
+        if (initialData && canvasRef.current && canvasHeight > 0 && isLoadedRef.current !== initialData) {
+            const loadData = () => {
+                try {
+                    canvasRef.current?.loadSaveData(initialData, true)
+                    isLoadedRef.current = initialData
+                    console.log("Annotations loaded successfully")
+                } catch (e) {
+                    console.error('Failed to load drawing data', e)
+                }
+            }
+
+            // Small delay to ensure the DOM has settled after height calculation
+            const timer = setTimeout(loadData, 200)
+            return () => clearTimeout(timer)
+        }
+    }, [initialData, canvasWidth, canvasHeight]) // Dependency on height is key here
 
     const handleSave = async () => {
         if (!canvasRef.current || !user) return
@@ -60,21 +113,37 @@ export function AnnotationLayer({
         const saveData = canvasRef.current.getSaveData()
         const tableName = mode === 'global' ? 'global_annotations' : 'user_annotations'
 
-        const upsertData: Record<string, unknown> = {
-            document_id: documentId,
-            drawing_data: saveData,
-            updated_at: new Date().toISOString()
-        }
+        // Solución Maestra: Manual Upsert (evita errores de restricciones de DB)
+        let query = supabase.from(tableName).select('id').eq('document_id', documentId)
+        if (mode === 'personal') query = query.eq('user_id', user.id)
 
-        if (mode === 'personal') {
-            upsertData.user_id = user.id
-        }
+        const { data: existing } = await query.maybeSingle()
 
-        const { error } = await supabase
-            .from(tableName)
-            .upsert(upsertData, {
-                onConflict: mode === 'global' ? 'document_id' : 'document_id,user_id'
-            })
+        let error;
+        if (existing) {
+            const updateData: Record<string, unknown> = {
+                drawing_data: saveData,
+                updated_at: new Date().toISOString()
+            }
+            const { error: updateError } = await supabase
+                .from(tableName)
+                .update(updateData)
+                .eq('id', existing.id)
+            error = updateError
+        } else {
+            const insertData: Record<string, unknown> = {
+                document_id: documentId,
+                drawing_data: saveData,
+                updated_at: new Date().toISOString()
+            }
+            if (mode === 'personal') {
+                insertData.user_id = user.id
+            }
+            const { error: insertError } = await supabase
+                .from(tableName)
+                .insert(insertData)
+            error = insertError
+        }
 
         if (error) {
             console.error("Error saving annotations:", error)
@@ -103,28 +172,31 @@ export function AnnotationLayer({
     }
 
     return (
-        <div className={`absolute inset-0 z-10 flex justify-center overflow-hidden ${isDrawing ? 'pointer-events-auto' : 'pointer-events-none'}`}>
+        <div
+            ref={containerRef}
+            className={`absolute inset-0 z-10 flex justify-center !pointer-events-none`}
+        >
             <div
-                className="w-full h-full overflow-hidden"
+                className={`w-full h-full overflow-hidden ${isDrawing ? 'pointer-events-auto cursor-crosshair' : 'pointer-events-none'}`}
+                style={{ touchAction: isDrawing ? 'none' : 'auto' }}
                 onWheel={(e) => {
-                    // Pass wheel scroll to parent container since CanvasDraw blocks it
+                    // Bubble scroll to parent if drawing
                     if (isDrawing) {
-                        const parent = e.currentTarget.parentElement?.parentElement;
-                        if (parent) {
-                            parent.scrollTop += e.deltaY;
+                        const scrollable = containerRef.current?.closest('.overflow-y-auto');
+                        if (scrollable) {
+                            scrollable.scrollBy({ top: e.deltaY, behavior: 'auto' });
                         }
                     }
                 }}
             >
                 <CanvasDraw
-                    key={canvasWidth} // Force re-render on width change to resize
                     ref={canvasRef}
                     disabled={!isDrawing}
                     brushColor={brushColor}
                     brushRadius={brushRadius}
                     lazyRadius={0}
                     canvasWidth={canvasWidth}
-                    canvasHeight={8000}
+                    canvasHeight={canvasHeight}
                     backgroundColor="transparent"
                     hideGrid
                     loadTimeOffset={5}

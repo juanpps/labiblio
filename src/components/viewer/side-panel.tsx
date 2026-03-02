@@ -134,9 +134,9 @@ export function SidePanel({ doc: initialDoc, isDrawing }: { doc: Document, isDra
                     <Button
                         variant="default"
                         size="icon"
-                        className="fixed right-4 bottom-28 md:right-10 md:bottom-32 h-14 w-14 rounded-full bg-primary text-white shadow-2xl hover:scale-110 active:scale-95 transition-all z-[60]"
+                        className="fixed right-4 top-1/2 -translate-y-1/2 h-12 w-12 rounded-full bg-primary text-white shadow-2xl hover:scale-110 active:scale-95 transition-all z-[60]"
                     >
-                        <MessageSquare className="h-7 w-7" />
+                        <MessageSquare className="h-6 w-6" />
                     </Button>
                 </SheetTrigger>
             )}
