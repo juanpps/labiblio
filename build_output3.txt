@@ -1,0 +1,50 @@
+
+> icfes-app@0.1.0 build
+> next build
+
+  ▲ Next.js 14.2.22
+  - Environments: .env.local
+
+   Creating an optimized production build ...
+ ✓ (pwa) Compiling for server...
+ ✓ (pwa) Compiling for server...
+ ✓ (pwa) Compiling for client (static)...
+ ○ (pwa) Service worker: C:\Users\Admin\Desktop\labiblioteca\public\sw.js
+ ○ (pwa)   URL: /sw.js
+ ○ (pwa)   Scope: /
+<w> [webpack.cache.PackFileCacheStrategy] Serializing big strings (133kiB) impacts deserialization performance (consider using Buffer instead and decode when needed)
+ ✓ Compiled successfully
+   Linting and checking validity of types ...
+
+Failed to compile.
+
+./src/app/page.tsx
+26:15  Error: `"` can be escaped with `&quot;`, `&ldquo;`, `&#34;`, `&rdquo;`.  react/no-unescaped-entities
+26:154  Error: `"` can be escaped with `&quot;`, `&ldquo;`, `&#34;`, `&rdquo;`.  react/no-unescaped-entities
+
+./src/app/viewer/[id]/page.tsx
+3:31  Error: 'useRef' is defined but never used.  @typescript-eslint/no-unused-vars
+66:8  Warning: React Hook useEffect has a missing dependency: 'mode'. Either include it or remove the dependency array.  react-hooks/exhaustive-deps
+
+./src/components/admin/admin-panel.tsx
+8:10  Error: 'Label' is defined but never used.  @typescript-eslint/no-unused-vars
+40:8  Warning: React Hook useEffect has a missing dependency: 'fetchData'. Either include it or remove the dependency array.  react-hooks/exhaustive-deps
+46:41  Error: 'usersError' is assigned a value but never used.  @typescript-eslint/no-unused-vars
+
+./src/components/dashboard/header.tsx
+5:18  Error: 'User' is defined but never used.  @typescript-eslint/no-unused-vars
+
+./src/components/ui/input.tsx
+5:18  Error: An interface declaring no members is equivalent to its supertype.  @typescript-eslint/no-empty-object-type
+
+./src/components/ui/toaster.tsx
+10:10  Error: 'ToastProps' is defined but never used.  @typescript-eslint/no-unused-vars
+
+./src/components/ui/use-toast.ts
+19:7  Error: 'actionTypes' is assigned a value but only used as a type.  @typescript-eslint/no-unused-vars
+
+./src/components/viewer/annotation-layer.tsx
+47:13  Error: 'upsertData' is never reassigned. Use 'const' instead.  prefer-const
+47:25  Error: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+
+info  - Need to disable some ESLint rules? Learn more here: https://nextjs.org/docs/basic-features/eslint#disabling-rules

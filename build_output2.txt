@@ -1,0 +1,30 @@
+
+> icfes-app@0.1.0 build
+> next build
+
+  ▲ Next.js 14.2.22
+  - Environments: .env.local
+
+   Creating an optimized production build ...
+ ✓ (pwa) Compiling for server...
+ ✓ (pwa) Compiling for server...
+ ✓ (pwa) Compiling for client (static)...
+ ○ (pwa) Service worker: C:\Users\Admin\Desktop\labiblioteca\public\sw.js
+ ○ (pwa)   URL: /sw.js
+ ○ (pwa)   Scope: /
+<w> [webpack.cache.PackFileCacheStrategy] Serializing big strings (133kiB) impacts deserialization performance (consider using Buffer instead and decode when needed)
+Failed to compile.
+
+./node_modules/pdfjs-dist/build/pdf.js
+Module not found: Can't resolve 'canvas'
+
+https://nextjs.org/docs/messages/module-not-found
+
+Import trace for requested module:
+./node_modules/@react-pdf-viewer/core/lib/cjs/core.min.js
+./node_modules/@react-pdf-viewer/core/lib/index.js
+./src/components/viewer/pdf-viewer.tsx
+./src/app/viewer/[id]/page.tsx
+
+
+> Build failed because of webpack errors
