@@ -5,9 +5,8 @@ import { useSupabase } from '@/components/supabase/provider'
 import { DashboardHeader } from '@/components/dashboard/header'
 import { DocumentCard, type Document } from '@/components/documents/document-card'
 import { UploadMaterial } from '@/components/documents/upload-material'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Skeleton } from '@/components/ui/skeleton'
-import { BookOpen, GraduationCap, FileText, Sparkles, BookMarked, Shield } from 'lucide-react'
+import { BookOpen, Sparkles, Shield } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import Link from 'next/link'
 
@@ -49,14 +48,6 @@ export default function DashboardPage() {
         fetchDocuments()
         checkAdmin()
     }, [fetchDocuments, checkAdmin])
-
-    const filterDocs = (type: string) => {
-        if (type === 'all') return documents
-        if (type === 'saved') return documents.filter(doc => savedDocIds.includes(doc.id))
-        return documents.filter((doc) => doc.type === type)
-    }
-
-    const newestDocs = documents.slice(0, 4)
 
     return (
         <div className="min-h-screen bg-background text-foreground selection:bg-primary/20">
