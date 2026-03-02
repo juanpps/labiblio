@@ -14,7 +14,10 @@ import {
     CheckCircle2,
     Users,
     UserCircle,
-    Move
+    Move,
+    Loader2,
+    Undo2,
+    Trash2
 } from 'lucide-react'
 import Link from 'next/link'
 import { Badge } from '@/components/ui/badge'
@@ -30,6 +33,10 @@ interface ViewerHeaderProps {
     setBrushRadius: (val: number) => void
     documentId: string
     mode: 'global' | 'personal'
+    onSave: () => void
+    onUndo: () => void
+    onClear: () => void
+    saving: boolean
 }
 
 export function ViewerHeader({
@@ -40,7 +47,11 @@ export function ViewerHeader({
     setBrushColor,
     brushRadius,
     setBrushRadius,
-    mode
+    mode,
+    onSave,
+    onUndo,
+    onClear,
+    saving
 }: ViewerHeaderProps) {
     const colors = [
         { name: 'Rojo', hex: '#ef4444' }, // Pencil red
@@ -128,9 +139,18 @@ export function ViewerHeader({
                             <Download className="h-3.5 w-3.5" />
                         </Button>
 
-                        <Button size="sm" className="hidden sm:flex gap-2 h-9 px-4 font-bold">
-                            <Save className="h-4 w-4" />
-                            Guardar
+                        <Button
+                            size="sm"
+                            className="hidden sm:flex gap-2 h-9 px-4 font-bold bg-primary hover:bg-primary/90"
+                            onClick={onSave}
+                            disabled={saving}
+                        >
+                            {saving ? (
+                                <Loader2 className="h-4 w-4 animate-spin" />
+                            ) : (
+                                <Save className="h-4 w-4" />
+                            )}
+                            {saving ? 'Guardando...' : 'Guardar'}
                         </Button>
                     </div>
                 </header>
@@ -151,13 +171,33 @@ export function ViewerHeader({
                             />
                         ))}
                         <div className="w-[1px] h-8 bg-white/10" />
+                        <div className="flex items-center gap-4">
+                            <Button
+                                variant="ghost"
+                                size="icon"
+                                className="text-zinc-400 h-10 w-10 hover:text-white"
+                                onClick={onUndo}
+                            >
+                                <Undo2 className="h-5 w-5" />
+                            </Button>
+                            <Button
+                                variant="ghost"
+                                size="icon"
+                                className="text-red-400/60 h-10 w-10 hover:text-red-400"
+                                onClick={onClear}
+                            >
+                                <Trash2 className="h-5 w-5" />
+                            </Button>
+                        </div>
+                        <div className="w-[1px] h-8 bg-white/10" />
                         <Button
                             variant="ghost"
                             size="icon"
-                            className="text-zinc-400 h-10 w-10"
-                            onClick={() => setIsDrawing(false)}
+                            className="text-zinc-400 h-10 w-10 hover:text-white"
+                            onClick={onSave}
+                            disabled={saving}
                         >
-                            <Eraser className="h-5 w-5" />
+                            {saving ? <Loader2 className="h-5 w-5 animate-spin" /> : <Save className="h-5 w-5" />}
                         </Button>
                     </div>
                 )}
