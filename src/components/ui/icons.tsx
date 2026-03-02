@@ -5,10 +5,11 @@ import {
     SunMedium,
     Twitter,
     Github,
-    type Icon as LucideIcon,
+    LucideIcon,
 } from "lucide-react"
 
-export type Icon = LucideIcon
+export type { LucideIcon as Icon }
+
 
 export const Icons = {
     sun: SunMedium,
