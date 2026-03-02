@@ -10,7 +10,7 @@ export function PDFViewer({ file }: { file: string }) {
 
     return (
         <div className="w-full h-full">
-            <Worker workerUrl="https://unpkg.com/pdfjs-dist@3.11.174/build/pdf.worker.min.js">
+            <Worker workerUrl="/pdf.worker.min.js">
                 <Viewer
                     fileUrl={file}
                     plugins={[defaultLayoutPluginInstance]}
