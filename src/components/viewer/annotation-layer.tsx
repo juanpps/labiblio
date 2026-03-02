@@ -32,6 +32,7 @@ export const AnnotationLayer = forwardRef<AnnotationLayerRef, AnnotationLayerPro
     const [canvasWidth, setCanvasWidth] = useState(1200)
     const [canvasHeight, setCanvasHeight] = useState(1200)
     const containerRef = useRef<HTMLDivElement>(null)
+    const [isMultiTouch, setIsMultiTouch] = useState(false)
 
     useImperativeHandle(ref, () => ({
         getSaveData: () => canvasRef.current?.getSaveData() || "",
@@ -43,6 +44,7 @@ export const AnnotationLayer = forwardRef<AnnotationLayerRef, AnnotationLayerPro
         }
     }))
 
+    // ... (rest of the dimensions logic remains)
     useEffect(() => {
         let timeoutId: NodeJS.Timeout;
 
@@ -113,8 +115,18 @@ export const AnnotationLayer = forwardRef<AnnotationLayerRef, AnnotationLayerPro
             className={`absolute inset-0 z-10 flex justify-center !pointer-events-none`}
         >
             <div
-                className={`w-full h-full overflow-hidden ${isDrawing ? 'pointer-events-auto cursor-crosshair' : 'pointer-events-none'}`}
+                className={`w-full h-full overflow-hidden ${isDrawing && !isMultiTouch ? 'pointer-events-auto cursor-crosshair' : 'pointer-events-none'}`}
                 style={{ touchAction: isDrawing ? 'pinch-zoom pan-x pan-y' : 'auto' }}
+                onTouchStart={(e) => {
+                    if (e.touches.length > 1) {
+                        setIsMultiTouch(true)
+                    } else {
+                        setIsMultiTouch(false)
+                    }
+                }}
+                onTouchEnd={() => {
+                    setIsMultiTouch(false)
+                }}
                 onWheel={(e) => {
                     if (isDrawing) {
                         const scrollable = containerRef.current?.closest('.overflow-y-auto');
@@ -126,7 +138,7 @@ export const AnnotationLayer = forwardRef<AnnotationLayerRef, AnnotationLayerPro
             >
                 <CanvasDraw
                     ref={canvasRef}
-                    disabled={!isDrawing}
+                    disabled={!isDrawing || isMultiTouch}
                     brushColor={brushColor}
                     brushRadius={brushRadius}
                     lazyRadius={0}
