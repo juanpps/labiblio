@@ -13,7 +13,8 @@ import {
     MessageSquare,
     CheckCircle2,
     Users,
-    UserCircle
+    UserCircle,
+    Move
 } from 'lucide-react'
 import Link from 'next/link'
 import { Badge } from '@/components/ui/badge'
@@ -104,14 +105,24 @@ export function ViewerHeader({
 
                     <div className="flex items-center gap-1 sm:gap-2">
                         {/* Toggle Drawing Button (Mobile only) */}
-                        <Button
-                            variant={isDrawing ? 'secondary' : 'ghost'}
-                            size="icon"
-                            className={`md:hidden h-9 w-9 ${isDrawing ? 'bg-primary/20 text-primary' : 'text-zinc-400'}`}
-                            onClick={() => setIsDrawing(!isDrawing)}
-                        >
-                            <Pencil className="h-4 w-4" />
-                        </Button>
+                        <div className="flex md:hidden items-center bg-zinc-800/50 rounded-lg p-0.5 border border-white/5">
+                            <Button
+                                variant={!isDrawing ? 'secondary' : 'ghost'}
+                                size="icon"
+                                className={`h-8 w-8 ${!isDrawing ? 'bg-white/10 text-white' : 'text-zinc-500'}`}
+                                onClick={() => setIsDrawing(false)}
+                            >
+                                <Move className="h-4 w-4" />
+                            </Button>
+                            <Button
+                                variant={isDrawing ? 'secondary' : 'ghost'}
+                                size="icon"
+                                className={`h-8 w-8 ${isDrawing ? 'bg-primary/20 text-primary' : 'text-zinc-500'}`}
+                                onClick={() => setIsDrawing(true)}
+                            >
+                                <Pencil className="h-4 w-4" />
+                            </Button>
+                        </div>
 
                         <Button variant="ghost" size="icon" className="text-zinc-500 hover:text-white h-8 w-8">
                             <Download className="h-3.5 w-3.5" />

@@ -178,7 +178,7 @@ export function AnnotationLayer({
         >
             <div
                 className={`w-full h-full overflow-hidden ${isDrawing ? 'pointer-events-auto cursor-crosshair' : 'pointer-events-none'}`}
-                style={{ touchAction: isDrawing ? 'none' : 'auto' }}
+                style={{ touchAction: isDrawing ? 'pinch-zoom pan-x pan-y' : 'auto' }}
                 onWheel={(e) => {
                     // Bubble scroll to parent if drawing
                     if (isDrawing) {
